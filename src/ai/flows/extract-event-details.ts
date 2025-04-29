@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Extracts event details from an image of a timetable using AI.
@@ -22,9 +21,9 @@ export type ExtractEventDetailsInput = z.infer<typeof ExtractEventDetailsInputSc
 
 const EventSchema = z.object({
     title: z.string().describe('The title, subject name, or main label of the event (e.g., "EH(IT-606)"). Extract this accurately from the corresponding entry in the timetable.'),
-    startTime: z.string().datetime({ offset: true }).describe('The exact start date and time of the event in ISO 8601 UTC format (e.g., "2025-04-28T10:00:00Z").'),
-    endTime: z.string().datetime({ offset: true }).describe('The exact end date and time of the event in ISO 8601 UTC format (e.g., "2025-04-28T11:00:00Z").'),
-    description: z.string().optional().describe('Optional: Any relevant additional details like location, instructor name, topic, or notes.'),
+    startTime: z.string().datetime({ offset: true }).describe('The exact start date and time of the event in ISO 8601 UTC format (e.g., "2025-04-28T10:00:00Z"). MUST BE UTC.'),
+    endTime: z.string().datetime({ offset: true }).describe('The exact end date and time of the event in ISO 8601 UTC format (e.g., "2025-04-28T11:00:00Z"). MUST BE UTC.'),
+    description: z.string().optional().describe('Optional: Any relevant additional details like location, instructor name, topic, or notes. Leave empty if not present.'),
 });
 
 const ExtractEventDetailsOutputSchema = z.array(EventSchema).describe("An array containing all extracted event objects.");
@@ -66,50 +65,39 @@ Analyze the provided timetable image. The timetable is structured as a grid with
 
 1.  **Identify Events:**
     *   Locate cells containing course codes (like "EH(IT-606)", "EC(EE-501)", "DBMS(IT-505)", etc.). These are the events to extract.
-    *   **Crucially, EXCLUDE cells containing only single letters ("L", "U", "N", "C", "H").** These represent breaks or non-event periods. Specifically, the "L" in the "1-2PM" column represents Lunch and MUST NOT be extracted as an event.
+    *   **Crucially, EXCLUDE cells containing only single letters ("L", "U", "N", "C", "H").** These represent breaks or non-event periods. Specifically, the "L" in the "1-2PM" column represents Lunch and MUST NOT be extracted as an event. Any event found in the "1-2PM" column must be ignored.
 
 2.  **Extract Details for Each Event:**
-    *   **\`title\`**: Use the full course code found in the cell as the event title (e.g., "EH(IT-606)").
-    *   **\`startTime\` and \`endTime\`**:
-        *   Determine the **Date**: Use the row label (MON, TUES, etc.) and the following reference date mapping (Assume **April 29, 2025 is the Tuesday** of the week shown):
+    *   **title**: Use the full course code found in the cell as the event title (e.g., "EH(IT-606)").
+    *   **startTime and endTime**:
+        *   Determine the **Date**: Use the row label (MON, TUES, etc.) and the following reference date mapping (**Assume April 29, 2025 is the Tuesday** of the week shown):
             *   MON = 2025-04-28
             *   TUES = 2025-04-29
             *   WED = 2025-04-30
             *   THUS = 2025-05-01
             *   FRI = 2025-05-02
-        *   Determine the **Time**: Use the column header corresponding to the event's cell. Map these headers precisely to 24-hour format start and end times:
-            *   "10-11AM" -> Start: 10:00, End: 11:00
-            *   "11-12PM" -> Start: 11:00, End: 12:00
-            *   "12-1PM"  -> Start: 12:00, End: 13:00
-            *   "1-2PM"   -> (LUNCH - Ignore events in this column)
-            *   "2-3PM"   -> Start: 14:00, End: 15:00
-        *   **Combine Date and Time**: Create the full start and end datetime strings.
-        *   **Format**: Convert the combined date and time to **ISO 8601 UTC format**, ending with 'Z'. Example: Monday 10:00 AM becomes "2025-04-28T10:00:00Z".
+        *   Determine the **Time**: Use the column header corresponding to the event's cell. Map these headers **precisely** to 24-hour format start and end times:
+            *   "10-11AM": Start Time = 10:00, End Time = 11:00
+            *   "11-12PM": Start Time = 11:00, End Time = 12:00
+            *   "12-1PM":  Start Time = 12:00, End Time = 13:00
+            *   "1-2PM":   (LUNCH - IGNORE EVENTS IN THIS COLUMN)
+            *   "2-3PM":   Start Time = 14:00, End Time = 15:00
+        *   **Combine Date and Time**: Create the full start and end datetime by combining the calculated date and the start/end times.
+        *   **Format to UTC**: Convert the combined date and time to **ISO 8601 UTC format**, ending with 'Z'. Example: Monday 10:00 AM becomes "2025-04-28T10:00:00Z". The start time for the 10-11AM slot is exactly 10:00:00Z. The end time is exactly 11:00:00Z. Apply this logic strictly for all time slots.
 
-    *   **\`description\`**: Leave as \`undefined\` or \`null\`. There are no additional details like room numbers or instructors in this specific timetable image.
+    *   **description**: Leave as an empty string "" or undefined. There are no additional details like room numbers or instructors in this specific timetable image.
 
 3.  **Output Format:**
     *   Return a valid JSON array containing event objects.
-    *   Each object must have \`title\`, \`startTime\`, and \`endTime\` keys with correctly formatted values as specified above.
-    *   If no valid course events are found in the image, return an empty JSON array \`[]\`.
+    *   Each object must have \`title\`, \`startTime\`, and \`endTime\` keys with correctly formatted values as specified above. \`startTime\` and \`endTime\` **MUST** be in ISO 8601 UTC format ending with 'Z'.
+    *   If no valid course events are found in the image, return an empty JSON array [].
 
 **Important:**
-*   Pay close attention to the exact time slot mappings (10-11AM is 10:00 to 11:00, etc.).
-*   Ensure all output times are in UTC (ending with 'Z').
-*   Do not extract the lunch break ("L" cells) or any other single-letter cells.
-*   If the image is unclear or contains no discernible course events, return an empty JSON array \`[]\`.
+*   Pay extremely close attention to the exact time slot mappings (10-11AM is 10:00:00Z to 11:00:00Z UTC on the correct date, etc.).
+*   Ensure all output times are in UTC (ending with 'Z'). Do not use local time.
+*   Do not extract the lunch break ("L" cells) or any other single-letter cells. Ignore the entire "1-2PM" column for event extraction.
+*   If the image is unclear or contains no discernible course events, return an empty JSON array [].
 *   Do not invent information. Only extract what is present.
-
-**Example Extraction (based on the reference dates):**
-*   Input Cell: MON row, 10-11AM column, content "EH(IT-606)"
-*   Output Object:
-    \`\`\`json
-    {
-      "title": "EH(IT-606)",
-      "startTime": "2025-04-28T10:00:00Z",
-      "endTime": "2025-04-28T11:00:00Z"
-    }
-    \`\`\`
 
 Now, analyze the following timetable image and provide the JSON output:
 Timetable Image: {{media url=timetableImageDataUri}}
@@ -137,13 +125,13 @@ const extractEventDetailsFlow = ai.defineFlow<
    // Optional: Add validation for individual event structures within the array if needed
    const validatedOutput = output.filter(event =>
        event && typeof event.title === 'string' && typeof event.startTime === 'string' && typeof event.endTime === 'string'
+       && !isNaN(Date.parse(event.startTime)) && !isNaN(Date.parse(event.endTime)) // Check if dates are parsable
    );
 
    if (validatedOutput.length !== output.length) {
-       console.warn("Some extracted events had invalid structure and were filtered out.");
+       console.warn("Some extracted events had invalid structure or dates and were filtered out.");
    }
 
 
   return validatedOutput;
 });
-
