@@ -81,7 +81,8 @@ export function ImageUploader({ onImageUpload, isLoading }: ImageUploaderProps) 
           ${error ? 'border-destructive' : ''}
           ${preview ? 'border-none p-0' : ''}`}
         >
-          <input {...getInputProps()} id="file-upload" className="sr-only" />
+          {/* Removed sr-only class. react-dropzone hides this internally */}
+          <input {...getInputProps()} id="file-upload" />
 
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48">
@@ -93,12 +94,21 @@ export function ImageUploader({ onImageUpload, isLoading }: ImageUploaderProps) 
                <Image
                  src={preview}
                  alt={fileName || "Timetable preview"}
-                 layout="responsive"
-                 width={500} // Provide indicative width
-                 height={300} // Provide indicative height
+                 // Use fill and contain to prevent layout shifts while maintaining aspect ratio
+                 layout="fill"
                  objectFit="contain"
                  className="rounded-lg"
                />
+                {/* Added container for positioning the image correctly with layout="fill" */}
+               <div style={{ position: 'relative', width: '100%', paddingTop: '75%' /* Adjust aspect ratio if needed */ }}>
+                 <Image
+                   src={preview}
+                   alt={fileName || "Timetable preview"}
+                   layout="fill"
+                   objectFit="contain"
+                   className="absolute top-0 left-0 w-full h-full rounded-lg"
+                 />
+               </div>
                <Button
                   variant="destructive"
                   size="icon"
