@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -9,12 +8,9 @@ import { EventDisplay } from '@/components/app/event-display';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Event } from '@/lib/types';
 import { extractAndProcessEvents } from './actions';
-// Keep ICS generator in case we want it back later or for other export options
-// import { generateICS } from '@/lib/ics-generator';
-// import { Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
+import { Terminal, UploadCloud, CalendarX2, Sparkles } from "lucide-react";
 
 
 export default function Home() {
@@ -32,130 +28,123 @@ export default function Home() {
 
     try {
       const extractedEvents = await extractAndProcessEvents(dataUri);
-      if (extractedEvents) {
+      if (extractedEvents && extractedEvents.length > 0) {
         setEvents(extractedEvents);
          toast({
-          title: "Events Extracted",
-          description: `Successfully extracted ${extractedEvents.length} events. Review and add them to Google Calendar below.`,
+          title: "Events Extracted Successfully!",
+          description: `Found ${extractedEvents.length} events. Review and add them to your calendar below.`,
+          variant: 'default', // Use default for success
         });
       } else {
-         // Handle case where extraction returns null or empty without error explicitly thrown
+         // Handle case where extraction returns null or empty array
          setEvents([]); // Ensure events are empty
           toast({
-           variant: "default", // Use default variant as it's not necessarily an error
+           variant: "default", // Neutral message
            title: "No Events Found",
-           description: "The AI could not find any events in the uploaded image.",
+           description: "We couldn't find any schedule entries in the uploaded image. Try a different one?",
          });
       }
     } catch (err: any) {
       console.error('Error extracting events:', err);
-      const errorMessage = err.message || 'Failed to extract events from the image. Please try again with a clearer image.';
+      const errorMessage = err.message || 'Failed to extract events from the image. Please ensure the image is clear and shows a supported timetable format.';
       setError(errorMessage);
        toast({
         variant: "destructive",
         title: "Extraction Failed",
         description: errorMessage,
       });
+       // Don't clear image on error, let user retry or remove manually
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Kept for potential future use, but button is removed
-  // const handleExportICS = () => {
-  //   if (events.length === 0) {
-  //      toast({
-  //       variant: "destructive",
-  //       title: "No Events to Export",
-  //       description: "Please upload a timetable and extract events first.",
-  //     });
-  //     return;
-  //   }
-  //   try {
-  //     const icsContent = generateICS(events);
-  //     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-  //     const link = document.createElement('a');
-  //     link.href = URL.createObjectURL(blob);
-  //     link.download = 'schedule.ics';
-  //     document.body.appendChild(link);
-  //     link.click();
-  //     document.body.removeChild(link);
-  //      toast({
-  //       title: "Export Successful",
-  //       description: "Your schedule has been downloaded as schedule.ics.",
-  //     });
-  //   } catch (err) {
-  //     console.error('Error generating ICS:', err);
-  //      toast({
-  //       variant: "destructive",
-  //       title: "Export Failed",
-  //       description: "Could not generate the ICS file.",
-  //     });
-  //   }
-  // };
+  const handleRemoveImage = () => {
+    setImageDataUri(null);
+    setEvents([]);
+    setError(null);
+    setIsLoading(false);
+  };
+
 
   return (
-    <main className="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center">
-      <header className="w-full max-w-3xl text-center mb-8">
-        <h1 className="text-4xl font-bold mb-2 text-primary-foreground bg-primary py-2 px-4 rounded-lg inline-block shadow">
-          SmartSchedule
+    <main className="container mx-auto px-4 py-8 md:px-8 md:py-12 min-h-screen flex flex-col items-center bg-gradient-to-br from-background via-background to-secondary/20">
+      <header className="w-full max-w-4xl text-center mb-12 md:mb-16">
+         <div className="inline-block p-3 mb-4 bg-primary/10 rounded-full border border-primary/20 shadow-sm">
+            <Sparkles className="w-8 h-8 text-primary" />
+         </div>
+        <h1 className="text-4xl md:text-5xl font-extrabold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary-foreground/80">
+          SmartSchedule AI
         </h1>
-        <p className="text-lg text-muted-foreground">
-          Upload your timetable image, extract events, and add them to Google Calendar.
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Instantly turn your timetable image into a digital schedule. Upload, verify, and export to your calendar effortlessly.
         </p>
       </header>
 
-      <div className="w-full max-w-3xl mb-8">
-        <ImageUploader onImageUpload={handleImageUpload} isLoading={isLoading} />
+      <div className="w-full max-w-2xl mb-12 md:mb-16">
+        <ImageUploader
+          onImageUpload={handleImageUpload}
+          onRemoveImage={handleRemoveImage}
+          isLoading={isLoading}
+          preview={imageDataUri} // Pass preview state
+        />
       </div>
 
        {error && (
-         <Alert variant="destructive" className="w-full max-w-3xl mb-8">
-           <Terminal className="h-4 w-4" />
-           <AlertTitle>Error</AlertTitle>
+         <Alert variant="destructive" className="w-full max-w-2xl mb-8 animate-fade-in shadow-md border-destructive/70">
+           <Terminal className="h-5 w-5" />
+           <AlertTitle className="font-semibold">Oops! Something went wrong.</AlertTitle>
            <AlertDescription>
-             {error}
+             {error} Please check the image or try uploading again.
            </AlertDescription>
          </Alert>
        )}
 
-      {isLoading && (
-        <div className="w-full max-w-3xl space-y-4">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
+      {/* Loading state - shows skeletons only *after* upload starts, before events are ready */}
+      {isLoading && !error && (
+        <div className="w-full max-w-3xl space-y-5 animate-pulse mt-6">
+           <div className="flex justify-center mb-4">
+              <p className="text-muted-foreground font-medium">Extracting schedule...</p>
+           </div>
+          <Skeleton className="h-24 w-full rounded-lg bg-muted/50" />
+          <Skeleton className="h-24 w-full rounded-lg bg-muted/50 animation-delay-100ms" />
+          <Skeleton className="h-24 w-full rounded-lg bg-muted/50 animation-delay-200ms" />
         </div>
       )}
 
+      {/* Event Display Area - Shown when not loading and events exist */}
       {!isLoading && events.length > 0 && (
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-3xl mt-6">
           <EventDisplay events={events} />
-          {/* Removed the main export button */}
-          {/*
-          <div className="mt-6 text-center">
-            <Button onClick={handleExportICS} size="lg">
-              <Download className="mr-2 h-5 w-5" />
-              Export as ICS
-            </Button>
-          </div>
-          */}
         </div>
       )}
 
+      {/* Initial Empty State - Before any image upload */}
       {!isLoading && !imageDataUri && events.length === 0 && !error && (
-        <div className="text-center text-muted-foreground mt-10">
-          <p>Upload an image of your timetable to get started.</p>
+        <div className="text-center text-muted-foreground mt-16 flex flex-col items-center animate-fade-in space-y-4 p-8 border border-dashed border-border/50 rounded-lg bg-muted/20 max-w-md mx-auto">
+           <UploadCloud className="w-16 h-16 text-primary/50 stroke-1" />
+          <h3 className="text-xl font-semibold text-foreground/90">Ready to Schedule?</h3>
+          <p className="text-sm">Upload an image of your timetable above to begin.</p>
+           <p className="text-xs text-muted-foreground/80">(Supported formats: PNG, JPG, WEBP)</p>
         </div>
       )}
 
-       {/* Display this message specifically when an image was uploaded but no events were found */}
+       {/* Empty State - After upload but no events found */}
        {!isLoading && imageDataUri && events.length === 0 && !error && (
-         <div className="text-center text-muted-foreground mt-10">
-           <p>No events found in the uploaded image.</p>
-           <p>Try uploading a clearer image or a different timetable format.</p>
+         <div className="text-center text-muted-foreground mt-16 flex flex-col items-center animate-fade-in space-y-4 p-8 border border-dashed border-destructive/30 rounded-lg bg-destructive/5 max-w-md mx-auto">
+           <CalendarX2 className="w-16 h-16 text-destructive/50 stroke-1" />
+            <h3 className="text-xl font-semibold text-destructive/90">No Events Found</h3>
+           <p className="text-sm">We couldn't detect any schedule entries in that image.</p>
+           <p className="mt-1 text-xs text-muted-foreground/80">Try uploading a clearer image or ensure it's a supported timetable format.</p>
+            <Button variant="outline" size="sm" onClick={handleRemoveImage} className="mt-4 border-destructive/30 text-destructive hover:bg-destructive/10">
+                Upload New Image
+            </Button>
          </div>
       )}
 
+      <footer className="mt-20 text-center text-muted-foreground text-xs w-full">
+         Powered by AI ✨ - Ensure extracted details are accurate before adding to calendar.
+      </footer>
 
     </main>
   );
