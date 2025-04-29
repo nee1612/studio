@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Extracts event details from an image of a timetable using AI.
@@ -10,8 +9,6 @@
 
 import { ai } from '@/ai/ai-instance';
 import { z } from 'genkit';
-// No longer importing Event from calendar.ts as we define the structure here
-
 
 const ExtractEventDetailsInputSchema = z.object({
   timetableImageDataUri: z
@@ -22,66 +19,83 @@ const ExtractEventDetailsInputSchema = z.object({
 });
 export type ExtractEventDetailsInput = z.infer<typeof ExtractEventDetailsInputSchema>;
 
-// Define the expected structure for a single event within the array output
 const EventSchema = z.object({
-    title: z.string().describe('The title, subject name, or main label of the event (e.g., "Physics Lecture", "Chemistry Lab", "Team Meeting"). Extract this accurately from the corresponding entry in the timetable.'),
-    startTime: z.string().datetime({ offset: true }).describe('The exact start date and time of the event in ISO 8601 format (e.g., "2024-09-21T09:00:00Z" or "2024-09-21T14:30:00+05:30"). If the date (day, month, year) is not explicitly mentioned for the specific event, infer it based on the context of the timetable (e.g., assume the current year, look for a date range specified for the week/month, or use a specific date mentioned elsewhere in the image). Accurately parse time formats (including AM/PM) and time zones if present, converting everything to UTC (Z suffix) or including the correct offset.'),
-    endTime: z.string().datetime({ offset: true }).describe('The exact end date and time of the event in ISO 8601 format (e.g., "2024-09-21T10:30:00Z" or "2024-09-21T16:00:00+05:30"). Infer the date similarly to startTime. Ensure the end time is logically after the start time and corresponds to the event duration shown in the timetable.'),
-    description: z.string().optional().describe('Optional: Any relevant additional details like location (e.g., "Room 301", "Hall B"), instructor name, topic, or notes associated with the event. Extract this if clearly associated with the event entry.'),
+    title: z.string().describe('The title, subject name, or main label of the event (e.g., "EH(IT-606)"). Extract this accurately from the corresponding entry in the timetable.'),
+    startTime: z.string().datetime({ offset: true }).describe('The exact start date and time of the event in ISO 8601 format (e.g., "2025-04-28T10:00:00Z").'),
+    endTime: z.string().datetime({ offset: true }).describe('The exact end date and time of the event in ISO 8601 format (e.g., "2025-04-28T11:00:00Z").'),
+    description: z.string().optional().describe('Optional: Any relevant additional details like location, instructor name, topic, or notes.'),
 });
 
-
-const ExtractEventDetailsOutputSchema = z.array(EventSchema).describe("An array containing all extracted event objects. Each object must strictly follow the EventSchema. If no events are found or the image is unreadable, return an empty array [].");
+const ExtractEventDetailsOutputSchema = z.array(EventSchema).describe("An array containing all extracted event objects.");
 export type ExtractEventDetailsOutput = z.infer<typeof ExtractEventDetailsOutputSchema>;
-
 
 export async function extractEventDetails(input: ExtractEventDetailsInput): Promise<ExtractEventDetailsOutput> {
   console.log("Calling AI to extract event details...");
   try {
     const result = await extractEventDetailsFlow(input);
     console.log("AI extraction result:", result);
-     // Ensure the result is always an array, even if the AI returns null/undefined somehow
-     return Array.isArray(result) ? result : [];
+    return Array.isArray(result) ? result : [];
   } catch (error) {
-     console.error("Error in extractEventDetailsFlow:", error);
-     // Return an empty array or re-throw depending on desired error handling
-     return [];
+    console.error("Error in extractEventDetailsFlow:", error);
+    return [];
   }
 }
-
 
 const extractEventDetailsPrompt = ai.definePrompt({
   name: 'extractEventDetailsPrompt',
   input: {
-    schema: ExtractEventDetailsInputSchema, // Use the defined input schema
+    schema: ExtractEventDetailsInputSchema,
   },
   output: {
-    schema: ExtractEventDetailsOutputSchema, // Use the defined output schema (array of events)
+    schema: ExtractEventDetailsOutputSchema,
   },
-  prompt: `You are an expert AI assistant specialized in accurately extracting structured event information from images of timetables, schedules, class routines, or calendars.
+  prompt: `
+You are an expert AI assistant specialized in accurately extracting structured event information from images of timetables, schedules, class routines, or calendars.
 
-Analyze the provided image meticulously. Identify each distinct event entry, often found in table cells corresponding to specific days and times. For each event found, extract the following details according to the defined output schema:
+The timetable in the image is structured as a grid with:
+- Rows representing days of the week (Monday to Friday, labeled as "MON", "TUES", "WED", "THUS", "FRI").
+- Columns representing time slots: 10-11AM, 11-12PM, 12-1PM, 1-2PM, 2-3PM.
+- Each cell contains either a course code (e.g., "EH(IT-606)") or a single letter (e.g., "L", "U", "N", "C", "H") indicating a break or free period.
 
-1.  **title**: Extract the subject name, course title, or event label (e.g., "Mathematics", "History 101", "Project Sync"). This is usually the most prominent text within the event's cell.
-2.  **startTime**: Determine the exact start date and time.
-    *   **Time:** Parse the time indicated for the event's beginning (e.g., "9:00 AM", "13:30"). Handle AM/PM correctly.
-    *   **Date:** If the date (day, month, year) is specified for the event or its corresponding day column/row, use it. If only the day of the week is mentioned, look for a date range or a starting date elsewhere in the image (e.g., "Week of Sep 16, 2024") to infer the full date. If no year is present, assume the current year based on the system clock unless context suggests otherwise.
-    *   **Format:** Convert the final date and time to the ISO 8601 format (e.g., YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DDTHH:mm:ss+HH:mm). Use UTC (Z) if possible, otherwise include the time offset.
-3.  **endTime**: Determine the exact end date and time, following the same logic as startTime. Ensure the end time reflects the event's duration as shown in the timetable (e.g., if an event spans from 9:00 AM to 10:30 AM).
-4.  **description**: (Optional) Extract any additional relevant information associated with the event, such as location (room number, building), instructor name, or specific topic, if present within or adjacent to the event's entry.
+### Extraction Steps:
+1. **Identify Events:**
+   - Treat cells with course codes (e.g., "EH(IT-606)") as events.
+   - Explicitly exclude cells with single letters ("L", "U", "N", "C", "H") as these indicate breaks (e.g., "L" for Lunch) and should not be extracted as events.
 
-**Processing Guidelines:**
-*   **Accuracy is paramount:** Pay close attention to details, especially times, dates, and subject titles. Do not guess if information is ambiguous.
-*   **Structure Awareness:** Recognize common timetable structures (grids, lists). Associate titles, times, and descriptions correctly based on their position.
-*   **Date Inference:** Be logical when inferring dates. If a timetable covers a week, calculate the correct date for each day based on a reference point if available.
-*   **Empty Output:** If the image is unclear, illegible, or contains no discernible timetable events, return an empty JSON array \`[]\`.
-*   **No Hallucination:** Only extract information explicitly present or logically inferable from the image content. Do not add unrelated details.
-*   **Strict Formatting:** Ensure the output is a valid JSON array where *each* element strictly adheres to the \`EventSchema\` (keys: "title", "startTime", "endTime", "description"?).
+2. **Extract Event Details:**
+   - **title**: Use the course code as the event title (e.g., "EH(IT-606)").
+   - **startTime** and **endTime**:
+     - Map the time slots to actual times:
+       - "10-11AM": 10:00 to 11:00
+       - "11-12PM": 11:00 to 12:00
+       - "12-1PM": 12:00 to 13:00
+       - "1-2PM": 13:00 to 14:00
+       - "2-3PM": 14:00 to 15:00
+     - Infer the date for each day based on the current date (April 29, 2025, which is a Tuesday):
+       - MON: April 28, 2025
+       - TUES: April 29, 2025
+       - WED: April 30, 2025
+       - THUS: May 1, 2025
+       - FRI: May 2, 2025
+     - Convert times to UTC (Z) in ISO 8601 format (e.g., "2025-04-28T10:00:00Z" for 10AM on Monday).
+   - **description**: Leave as undefined unless additional details (e.g., room numbers) are present, which they are not in this timetable.
+
+3. **Output Format:**
+   - Return a JSON array of event objects.
+   - Each event object must have "title", "startTime", and "endTime". Include "description" only if applicable.
+   - If no events are found (e.g., only breaks), return an empty array [].
+
+### Example Output:
+For a cell with "EH(IT-606)" on Monday at 10-11AM:
+{
+  "title": "EH(IT-606)",
+  "startTime": "2025-04-28T10:00:00Z",
+  "endTime": "2025-04-28T11:00:00Z"
+}
 
 Timetable Image: {{media url=timetableImageDataUri}}
 `,
 });
-
 
 const extractEventDetailsFlow = ai.defineFlow<
   typeof ExtractEventDetailsInputSchema,
@@ -91,18 +105,14 @@ const extractEventDetailsFlow = ai.defineFlow<
   inputSchema: ExtractEventDetailsInputSchema,
   outputSchema: ExtractEventDetailsOutputSchema,
 }, async (input) => {
-  console.log("Executing extractEventDetailsFlow with input:", input.timetableImageDataUri.substring(0, 50) + "..."); // Log start and truncated URI
+  console.log("Executing extractEventDetailsFlow with input:", input.timetableImageDataUri.substring(0, 50) + "...");
   const { output } = await extractEventDetailsPrompt(input);
-   console.log("Raw output from AI prompt:", output);
+  console.log("Raw output from AI prompt:", output);
 
-   // Basic validation: Ensure output is an array.
-   if (!Array.isArray(output)) {
-     console.warn("AI output was not an array. Returning empty array. Output:", output);
-     return [];
-   }
+  if (!Array.isArray(output)) {
+    console.warn("AI output was not an array. Returning empty array. Output:", output);
+    return [];
+  }
 
-   // Further validation could be added here to check each event object structure if needed.
-
-  return output; // Output should now be guaranteed to be an array (possibly empty)
+  return output;
 });
-
