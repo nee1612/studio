@@ -8,75 +8,53 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 94%; /* Light Gray (#F0F0F0) */
-    --foreground: 240 10% 3.9%; /* Darker Gray for text */
-    --card: 0 0% 100%; /* White cards */
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 216 100% 81%; /* Soft Blue (#A0C4FF) */
-    --primary-foreground: 216 100% 20%; /* Darker Blue for text on primary */
-    --secondary: 0 0% 96.1%; /* Slightly lighter gray */
-    --secondary-foreground: 240 10% 3.9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 178 49% 60%; /* Teal (#64CCC9) */
-    --accent-foreground: 178 100% 15%; /* Darker Teal for text on accent */
-    --destructive: 0 84.2% 60.2%;
+    /* Futuristic Theme Adjustments */
+    --background: 220 20% 10%; /* Darker blue-gray background */
+    --foreground: 210 40% 98%; /* Lighter foreground for contrast */
+    --card: 220 15% 15%; /* Darker card background */
+    --card-foreground: 210 40% 96%;
+    --popover: 220 15% 12%; /* Darker popover */
+    --popover-foreground: 210 40% 96%;
+    --primary: 210 100% 60%; /* Vibrant Blue */
+    --primary-foreground: 210 100% 10%; /* Dark Blue text on primary */
+    --secondary: 220 10% 25%; /* Muted dark blue-gray */
+    --secondary-foreground: 210 30% 90%;
+    --muted: 220 10% 20%; /* Slightly darker muted */
+    --muted-foreground: 210 20% 60%;
+    --accent: 175 80% 50%; /* Brighter Teal/Cyan */
+    --accent-foreground: 175 100% 10%; /* Dark Teal text on accent */
+    --destructive: 0 70% 55%; /* Keep destructive relatively standard but vibrant */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 178 49% 60%; /* Teal for ring */
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --border: 220 15% 30%; /* Subtle border */
+    --input: 220 15% 25%; /* Input background */
+    --ring: 175 80% 55%; /* Accent color for ring */
+
+    --chart-1: 210 80% 60%; /* Adjust chart colors */
+    --chart-2: 175 70% 50%;
+    --chart-3: 280 60% 65%;
+    --chart-4: 45 90% 60%;
+    --chart-5: 330 75% 60%;
+
     --radius: 0.75rem; /* Slightly larger radius */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Sidebar - Keeping dark for consistency */
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 210 30% 85%;
+    --sidebar-primary: 210 90% 65%;
+    --sidebar-primary-foreground: 210 100% 10%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 210 40% 95%;
+    --sidebar-border: 220 15% 25%;
+    --sidebar-ring: 175 80% 55%;
   }
+
+  /* Define .dark if specific overrides are needed, otherwise it inherits root */
+  /* For now, we'll assume the base theme *is* the dark/futuristic theme */
   .dark {
-    /* Define dark mode colors if needed, otherwise inherit or adjust */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 5.9%; /* Slightly lighter dark card */
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 216 100% 81%; /* Soft Blue */
-    --primary-foreground: 216 100% 20%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 178 49% 60%; /* Teal */
-    --accent-foreground: 178 100% 15%;
-    --destructive: 0 72.2% 50.6%; /* Adjusted dark destructive */
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 178 49% 60%; /* Teal */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --radius: 0.75rem;
+     /* You could define specific dark mode overrides here if needed, */
+     /* but the root variables are already set for a dark theme. */
+     /* Example: Make borders even subtler in explicit dark mode */
+     /* --border: 220 15% 25%; */
   }
 }
 
@@ -92,22 +70,29 @@ body {
 
 /* Add custom animation utilities */
 @layer utilities {
-  .animation-delay-100ms { animation-delay: 100ms !important; } /* Use !important to ensure override if needed */
+  .animation-delay-100ms { animation-delay: 100ms !important; }
   .animation-delay-200ms { animation-delay: 200ms !important; }
   .animation-delay-300ms { animation-delay: 300ms !important; }
   .animation-delay-400ms { animation-delay: 400ms !important; }
   .animation-delay-500ms { animation-delay: 500ms !important; }
-  /* Add more delays as needed */
 
-   /* Shake animation for errors */
+  /* Subtle Glow Effect */
+   .glow-on-hover {
+     @apply transition-all duration-300;
+   }
+   .glow-on-hover:hover {
+     box-shadow: 0 0 15px 5px hsla(var(--accent), 0.4), 0 0 5px 1px hsla(var(--primary), 0.3);
+   }
+
+  /* Shake animation for errors */
   .animate-shake {
     animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
   }
 }
 
 /* Define keyframes */
-@keyframes fade-in {
-  0% { opacity: 0; transform: translateY(10px); }
+@keyframes fade-in-up { /* Changed fade-in direction */
+  0% { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
@@ -116,4 +101,10 @@ body {
   20%, 80% { transform: translate3d(2px, 0, 0); }
   30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
   40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* Apply fade-in animation globally (optional, can be targeted) */
+.animate-fade-in {
+   animation: fade-in-up 0.6s ease-out forwards;
+   animation-fill-mode: backwards; /* Start animation from initial state */
 }
