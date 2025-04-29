@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,8 +9,9 @@ import { EventDisplay } from '@/components/app/event-display';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Event } from '@/lib/types';
 import { extractAndProcessEvents } from './actions';
-import { generateICS } from '@/lib/ics-generator';
-import { Download } from 'lucide-react';
+// Keep ICS generator in case we want it back later or for other export options
+// import { generateICS } from '@/lib/ics-generator';
+// import { Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
@@ -34,10 +36,16 @@ export default function Home() {
         setEvents(extractedEvents);
          toast({
           title: "Events Extracted",
-          description: `Successfully extracted ${extractedEvents.length} events.`,
+          description: `Successfully extracted ${extractedEvents.length} events. Review and add them to Google Calendar below.`,
         });
       } else {
-         throw new Error("No events extracted or an error occurred.");
+         // Handle case where extraction returns null or empty without error explicitly thrown
+         setEvents([]); // Ensure events are empty
+          toast({
+           variant: "default", // Use default variant as it's not necessarily an error
+           title: "No Events Found",
+           description: "The AI could not find any events in the uploaded image.",
+         });
       }
     } catch (err: any) {
       console.error('Error extracting events:', err);
@@ -53,37 +61,38 @@ export default function Home() {
     }
   };
 
-  const handleExportICS = () => {
-    if (events.length === 0) {
-       toast({
-        variant: "destructive",
-        title: "No Events to Export",
-        description: "Please upload a timetable and extract events first.",
-      });
-      return;
-    }
-    try {
-      const icsContent = generateICS(events);
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'schedule.ics';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-       toast({
-        title: "Export Successful",
-        description: "Your schedule has been downloaded as schedule.ics.",
-      });
-    } catch (err) {
-      console.error('Error generating ICS:', err);
-       toast({
-        variant: "destructive",
-        title: "Export Failed",
-        description: "Could not generate the ICS file.",
-      });
-    }
-  };
+  // Kept for potential future use, but button is removed
+  // const handleExportICS = () => {
+  //   if (events.length === 0) {
+  //      toast({
+  //       variant: "destructive",
+  //       title: "No Events to Export",
+  //       description: "Please upload a timetable and extract events first.",
+  //     });
+  //     return;
+  //   }
+  //   try {
+  //     const icsContent = generateICS(events);
+  //     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  //     const link = document.createElement('a');
+  //     link.href = URL.createObjectURL(blob);
+  //     link.download = 'schedule.ics';
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+  //      toast({
+  //       title: "Export Successful",
+  //       description: "Your schedule has been downloaded as schedule.ics.",
+  //     });
+  //   } catch (err) {
+  //     console.error('Error generating ICS:', err);
+  //      toast({
+  //       variant: "destructive",
+  //       title: "Export Failed",
+  //       description: "Could not generate the ICS file.",
+  //     });
+  //   }
+  // };
 
   return (
     <main className="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center">
@@ -92,7 +101,7 @@ export default function Home() {
           SmartSchedule
         </h1>
         <p className="text-lg text-muted-foreground">
-          Upload your timetable image, and we'll extract the events for you.
+          Upload your timetable image, extract events, and add them to Google Calendar.
         </p>
       </header>
 
@@ -121,12 +130,15 @@ export default function Home() {
       {!isLoading && events.length > 0 && (
         <div className="w-full max-w-3xl">
           <EventDisplay events={events} />
+          {/* Removed the main export button */}
+          {/*
           <div className="mt-6 text-center">
             <Button onClick={handleExportICS} size="lg">
               <Download className="mr-2 h-5 w-5" />
               Export as ICS
             </Button>
           </div>
+          */}
         </div>
       )}
 
@@ -136,11 +148,12 @@ export default function Home() {
         </div>
       )}
 
+       {/* Display this message specifically when an image was uploaded but no events were found */}
        {!isLoading && imageDataUri && events.length === 0 && !error && (
-        <div className="text-center text-muted-foreground mt-10">
-          <p>No events found in the uploaded image.</p>
+         <div className="text-center text-muted-foreground mt-10">
+           <p>No events found in the uploaded image.</p>
            <p>Try uploading a clearer image or a different timetable format.</p>
-        </div>
+         </div>
       )}
 
 

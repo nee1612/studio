@@ -1,10 +1,13 @@
+
 'use client';
 
 import * as React from 'react';
 import type { Event } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, ClockIcon, InfoIcon } from 'lucide-react';
+import { CalendarIcon, ClockIcon, InfoIcon, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { generateGoogleCalendarLink } from '@/lib/google-calendar-link'; // Import the new utility function
 
 interface EventDisplayProps {
   events: Event[];
@@ -34,31 +37,46 @@ export function EventDisplay({ events }: EventDisplayProps) {
   return (
     <div className="space-y-4 animate-fade-in">
        <h2 className="text-2xl font-semibold mb-4 text-center">Extracted Events</h2>
-      {events.map((event, index) => (
-        <Card key={index} className="shadow-sm transition-shadow duration-300 hover:shadow-md overflow-hidden">
-          <CardHeader className="bg-secondary/50 p-4 border-b">
-            <CardTitle className="text-lg flex items-center gap-2">
-               <InfoIcon className="h-5 w-5 text-primary" />
-              {event.title || 'Untitled Event'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-2">
-             <div className="flex items-center text-sm text-muted-foreground gap-2">
-               <CalendarIcon className="h-4 w-4 text-accent" />
-               <span>{formatDate(event.startTime)}</span>
-             </div>
-             <div className="flex items-center text-sm text-muted-foreground gap-2">
-                <ClockIcon className="h-4 w-4 text-accent" />
-                <span>{formatDate(event.endTime)}</span>
-             </div>
-             {event.description && (
-                <CardDescription className="pt-2 text-foreground">
-                   {event.description}
-                </CardDescription>
-             )}
-          </CardContent>
-        </Card>
-      ))}
+      {events.map((event, index) => {
+          const googleLink = generateGoogleCalendarLink(event);
+          return (
+            <Card key={index} className="shadow-sm transition-shadow duration-300 hover:shadow-md overflow-hidden">
+              <CardHeader className="bg-secondary/50 p-4 border-b flex flex-row items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                   <InfoIcon className="h-5 w-5 text-primary" />
+                  {event.title || 'Untitled Event'}
+                </CardTitle>
+                 {/* Add to Google Calendar Button */}
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   asChild // Use asChild to make the button act as a link
+                   disabled={!googleLink} // Disable if link generation failed
+                  >
+                   <a href={googleLink || '#'} target="_blank" rel="noopener noreferrer">
+                     <ExternalLink className="h-4 w-4 mr-1" />
+                     Add to Google
+                   </a>
+                 </Button>
+              </CardHeader>
+              <CardContent className="p-4 space-y-2">
+                 <div className="flex items-center text-sm text-muted-foreground gap-2">
+                   <CalendarIcon className="h-4 w-4 text-accent" />
+                   <span>{formatDate(event.startTime)}</span>
+                 </div>
+                 <div className="flex items-center text-sm text-muted-foreground gap-2">
+                    <ClockIcon className="h-4 w-4 text-accent" />
+                    <span>{formatDate(event.endTime)}</span>
+                 </div>
+                 {event.description && (
+                    <CardDescription className="pt-2 text-foreground">
+                       {event.description}
+                    </CardDescription>
+                 )}
+              </CardContent>
+            </Card>
+          );
+       })}
     </div>
   );
 }
@@ -76,3 +94,4 @@ export function EventDisplay({ events }: EventDisplayProps) {
   }
 }
 */
+
