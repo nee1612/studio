@@ -80,7 +80,7 @@ export function EventDisplay({ events }: EventDisplayProps) {
           <Card
             key={index}
             className={cn(
-              "shadow-lg transition-all duration-300 hover:shadow-primary/20 overflow-hidden border border-border/50 bg-card rounded-xl group", // Added group for hover effects within card
+              "shadow-lg transition-all duration-300 hover:shadow-primary/20 overflow-hidden border border-border/50 bg-card rounded-xl group glow-on-hover", // Added group for hover effects within card and glow
               "animate-fade-in",
               `animation-delay-${index * 100}ms` // Stagger animation
             )}
@@ -88,7 +88,6 @@ export function EventDisplay({ events }: EventDisplayProps) {
           >
             <CardHeader className="p-4 border-b border-border/30 flex flex-row items-center justify-between space-x-4 bg-gradient-to-r from-card via-card to-secondary/10"> {/* Subtle gradient header */}
               <div className="flex items-center gap-3 min-w-0">
-                {/* Changed Icon and added color */}
                 <div className="p-1.5 bg-primary/10 rounded-md">
                    <Info className="h-5 w-5 text-primary flex-shrink-0" />
                 </div>
@@ -96,34 +95,32 @@ export function EventDisplay({ events }: EventDisplayProps) {
                   {event.title || 'Untitled Event'}
                 </CardTitle>
               </div>
-              {/* Enhanced Add to Google Calendar Button */}
-              <Button
-                variant="ghost" // Changed variant
-                size="sm"
-                asChild={!!googleLink}
-                disabled={!googleLink}
-                className={cn(
-                    "flex-shrink-0 text-accent hover:bg-accent/10 hover:text-accent-foreground transition-all duration-200 rounded-md px-3 py-1", // Adjusted padding/rounding
-                    !googleLink && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-accent" // Style disabled state
-                )}
-                title={googleLink ? "Add this event to Google Calendar" : "Cannot add event (invalid date/time)"}
-              >
-                 {googleLink ? (
-                    <a href={googleLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5"> {/* Added gap */}
-                    <CalendarPlus className="h-4 w-4" /> {/* Changed Icon */}
-                    <span>Add to Calendar</span> {/* Changed Text */}
-                    </a>
-                ) : (
-                    <span className="flex items-center gap-1.5">
-                        <CalendarPlus className="h-4 w-4" />
-                        <span>Add to Calendar</span>
-                    </span>
-                )}
-              </Button>
+              {/* Add to Google Calendar Button (Individual) */}
+               <Button
+                 variant="ghost"
+                 size="icon" // Make it an icon button
+                 asChild={!!googleLink}
+                 disabled={!googleLink}
+                 className={cn(
+                     "flex-shrink-0 text-accent hover:bg-accent/10 hover:text-accent-foreground transition-all duration-200 rounded-full w-8 h-8 p-0 glow-on-hover", // Icon specific styling
+                     !googleLink && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-accent"
+                 )}
+                 title={googleLink ? "Add this event to Google Calendar" : "Cannot add event (invalid date/time)"}
+               >
+                  {googleLink ? (
+                     <a href={googleLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                     <CalendarPlus className="h-4 w-4" /> {/* Just the icon */}
+                     </a>
+                 ) : (
+                     <span className="flex items-center justify-center">
+                         <CalendarPlus className="h-4 w-4" />
+                     </span>
+                 )}
+               </Button>
             </CardHeader>
             <CardContent className="p-5 space-y-3">
-              <div className="flex items-center text-sm text-muted-foreground gap-2.5 group-hover:text-foreground/90 transition-colors duration-200"> {/* Text color change on card hover */}
-                <CalendarDays className="h-4 w-4 text-primary/80 flex-shrink-0" /> {/* Adjusted icon color */}
+              <div className="flex items-center text-sm text-muted-foreground gap-2.5 group-hover:text-foreground/90 transition-colors duration-200">
+                <CalendarDays className="h-4 w-4 text-primary/80 flex-shrink-0" />
                 <span className="font-medium">{startTimeValid ? formatDate(event.startTime) : 'Invalid Date'}</span>
               </div>
               <div className="flex items-center text-sm text-muted-foreground gap-2.5 group-hover:text-foreground/90 transition-colors duration-200">
@@ -131,7 +128,7 @@ export function EventDisplay({ events }: EventDisplayProps) {
                 <span className="font-medium">{startTimeValid && endTimeValid ? formatTimeRange(event.startTime, event.endTime) : 'Invalid Time'}</span>
               </div>
               {event.description && (
-                <CardDescription className="pt-3 text-foreground/70 text-sm italic border-t border-border/20 mt-4 group-hover:text-foreground/80 transition-colors duration-200"> {/* Subtle description styling */}
+                <CardDescription className="pt-3 text-foreground/70 text-sm italic border-t border-border/20 mt-4 group-hover:text-foreground/80 transition-colors duration-200">
                   {event.description}
                 </CardDescription>
               )}
