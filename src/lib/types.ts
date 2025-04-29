@@ -8,15 +8,13 @@ export interface Event {
    */
   title: string;
   /**
-   * The start date and time of the event.
-   * Can be a Date object or an ISO 8601 string.
+   * The start date and time of the event as an ISO 8601 UTC string (e.g., "2025-04-28T10:00:00Z").
    */
-  startTime: Date | string;
+  startTime: string;
   /**
-   * The end date and time of the event.
-   * Can be a Date object or an ISO 8601 string.
+   * The end date and time of the event as an ISO 8601 UTC string (e.g., "2025-04-28T11:00:00Z").
    */
-  endTime: Date | string;
+  endTime: string;
   /**
    * An optional description or details about the event.
    */

@@ -1,9 +1,10 @@
 
 import type { Event } from './types';
-import { format } from 'date-fns-tz'; // Ensure this import is correct
+// No longer needed: import { format } from 'date-fns-tz';
 
 /**
  * Generates an iCalendar (.ics) file content string from an array of events.
+ * Assumes event.startTime and event.endTime are already valid ISO 8601 UTC strings (YYYYMMDDTHHmmssZ).
  *
  * @param events - An array of Event objects.
  * @returns A string containing the .ics file content.
@@ -11,26 +12,16 @@ import { format } from 'date-fns-tz'; // Ensure this import is correct
 export function generateICS(events: Event[]): string {
   console.log("[generateICS] Starting ICS generation for events count:", events.length);
 
-  const formatDateICS = (label: string, date: Date | string): string => {
-     try {
-        const dateObj = typeof date === 'string' ? new Date(date) : date;
-        if (isNaN(dateObj.getTime())) {
-            throw new Error(`Invalid date object for ${label}`);
-        }
-        // Log the Date object before formatting (in UTC ISO format for clarity)
-        console.log(`[formatDateICS] Formatting ${label}: Input Date object: ${dateObj.toISOString()}`);
-
-        // Format date to ICS format (YYYYMMDDTHHmmssZ) in UTC
-        const formattedDate = format(dateObj, "yyyyMMdd'T'HHmmss'Z'", { timeZone: 'UTC' });
-
-        // Log the formatted date
-        console.log(`[formatDateICS] Formatted ${label}: Output ICS Date: ${formattedDate}`);
-
-        return formattedDate;
-     } catch (error) {
-        console.error(`[formatDateICS] Error formatting date for ${label}:`, error, "Original value:", date);
-        return 'INVALID_DATE';
-     }
+  // Helper to format the current timestamp for DTSTAMP
+  const formatDtstamp = (): string => {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = (now.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = now.getUTCDate().toString().padStart(2, '0');
+    const hours = now.getUTCHours().toString().padStart(2, '0');
+    const minutes = now.getUTCMinutes().toString().padStart(2, '0');
+    const seconds = now.getUTCSeconds().toString().padStart(2, '0');
+    return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
   };
 
 
@@ -39,43 +30,41 @@ VERSION:2.0
 PRODID:-//SmartSchedule//Event Exporter//EN
 CALSCALE:GREGORIAN
 `;
-// Optional: Add a VTIMEZONE component if specific timezone handling beyond UTC is needed,
-// but pure UTC (ending with Z) is usually preferred for simplicity and compatibility.
-/*
-icsContent += `BEGIN:VTIMEZONE
-TZID:Etc/UTC
-BEGIN:STANDARD
-DTSTART:19700101T000000Z
-TZOFFSETFROM:+0000
-TZOFFSETTO:+0000
-TZNAME:UTC
-END:STANDARD
-END:VTIMEZONE
-`;
-*/
 
   events.forEach((event, index) => {
     console.log(`[generateICS] Processing event ${index + 1} - Title: ${event.title}`);
     const uid = `smartschedule-${Date.now()}-${index}@example.com`; // Simple unique ID
-    const dtstamp = formatDateICS('DTSTAMP', new Date()); // Creation timestamp
-    const dtstart = formatDateICS('DTSTART', event.startTime);
-    const dtend = formatDateICS('DTEND', event.endTime);
+    const dtstamp = formatDtstamp(); // Creation timestamp
 
-    // Basic validation before adding event
-    if (dtstart === 'INVALID_DATE' || dtend === 'INVALID_DATE') {
-        console.warn(`[generateICS] Skipping event "${event.title}" due to invalid date format.`);
+    // Directly use the pre-formatted ISO strings from the event object
+    const dtstart = event.startTime;
+    const dtend = event.endTime;
+
+    // Basic validation on the strings (ensure they look like ISO UTC)
+    const isoUtcRegex = /^\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z$/;
+     const dtstartIcsFormatted = dtstart.replace(/[-:]/g, ''); // Convert YYYY-MM-DDTHH:MM:SSZ to YYYYMMDDTHHMMSSZ
+     const dtendIcsFormatted = dtend.replace(/[-:]/g, '');     // Convert YYYY-MM-DDTHH:MM:SSZ to YYYYMMDDTHHMMSSZ
+
+
+    if (!isoUtcRegex.test(dtstartIcsFormatted) || !isoUtcRegex.test(dtendIcsFormatted)) {
+        console.warn(`[generateICS] Skipping event "${event.title}" due to invalid pre-formatted ISO string: START=${dtstartIcsFormatted}, END=${dtendIcsFormatted}`);
         return; // Skip this event
     }
 
-    console.log(`[generateICS] Event ${index + 1} - Title: ${event.title}, DTSTART: ${dtstart}, DTEND: ${dtend}`);
+    console.log(`[generateICS] Event ${index + 1} - Title: ${event.title}, DTSTART: ${dtstartIcsFormatted}, DTEND: ${dtendIcsFormatted}`);
+
+    // Escape special characters in description and summary
+    const escapeICS = (str: string): string => {
+        return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    }
 
     icsContent += `BEGIN:VEVENT
 UID:${uid}
 DTSTAMP:${dtstamp}
-DTSTART:${dtstart}
-DTEND:${dtend}
-SUMMARY:${event.title || 'Untitled Event'}
-DESCRIPTION:${event.description ? event.description.replace(/\n/g, '\\n') : ''}
+DTSTART:${dtstartIcsFormatted}
+DTEND:${dtendIcsFormatted}
+SUMMARY:${escapeICS(event.title || 'Untitled Event')}
+DESCRIPTION:${escapeICS(event.description || '')}
 END:VEVENT
 `;
   });

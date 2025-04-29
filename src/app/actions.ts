@@ -2,7 +2,7 @@
 'use server';
 
 import { extractEventDetails, ExtractEventDetailsOutput } from '@/ai/flows/extract-event-details';
-import { validateExtractedDetails } from '@/ai/flows/validate-extracted-details';
+// import { validateExtractedDetails } from '@/ai/flows/validate-extracted-details'; // Validation logic can be added back if needed
 import type { Event } from '@/lib/types';
 
 /**
@@ -25,42 +25,37 @@ export async function extractAndProcessEvents(timetableImageDataUri: string): Pr
 
     console.log(`Extracted ${extractedDetailsArray.length} potential events.`);
 
-    // 2. Validate and Process each extracted event detail string
+    // 2. Basic validation and structuring (Validation using AI can be re-introduced if needed)
     const validatedEvents: Event[] = [];
 
-    // Process events sequentially to avoid overwhelming validation (if applicable)
     for (const rawEvent of extractedDetailsArray) {
-       // Basic check for essential fields before validation
+       // Basic check for essential fields before processing
        if (!rawEvent.title || !rawEvent.startTime || !rawEvent.endTime) {
            console.warn('Skipping raw event due to missing essential fields:', rawEvent);
            continue;
        }
 
         try {
-             // Convert ISO strings to Date objects. Handle potential errors.
-             const startTime = new Date(rawEvent.startTime);
-             const endTime = new Date(rawEvent.endTime);
+             // Perform basic validation on the ISO strings if needed (e.g., regex)
+             // For now, trust the AI format based on the prompt
+             const isValidStartTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(rawEvent.startTime);
+             const isValidEndTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(rawEvent.endTime);
 
-             if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-                 console.warn(`Skipping event "${rawEvent.title}" due to invalid date format.`);
+             if (!isValidStartTime || !isValidEndTime) {
+                 console.warn(`Skipping event "${rawEvent.title}" due to invalid ISO 8601 UTC date string format.`);
                  continue;
              }
 
-             // For now, we directly map assuming extraction is good enough
-             // In a real scenario, you might call validateExtractedDetails here
-             // const validationInput = { eventDetails: JSON.stringify(rawEvent) }; // Prepare for validation if needed
-             // const validationResult = await validateExtractedDetails(validationInput);
-             // if (validationResult.isValid) { ... }
-
+             // Directly use the ISO strings provided by the AI
              validatedEvents.push({
                 title: rawEvent.title,
-                startTime: startTime, // Use Date objects
-                endTime: endTime,   // Use Date objects
+                startTime: rawEvent.startTime, // Use raw string
+                endTime: rawEvent.endTime,   // Use raw string
                 description: rawEvent.description || '', // Ensure description is always a string
              });
 
-        } catch (parseError) {
-            console.error(`Error processing event "${rawEvent.title}":`, parseError);
+        } catch (processingError) {
+            console.error(`Error processing event "${rawEvent.title}":`, processingError);
              // Decide how to handle: skip, log, etc.
         }
     }

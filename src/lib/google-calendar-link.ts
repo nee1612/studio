@@ -1,25 +1,24 @@
 
 import type { Event } from './types';
-import { format } from 'date-fns-tz';
 
 /**
  * Generates a Google Calendar event creation URL with pre-filled details.
  * See: https://github.com/InteractionDesignFoundation/add-event-to-calendar-docs/blob/main/services/google.md
  *
- * @param event - An Event object.
+ * @param event - An Event object containing ISO 8601 UTC strings for startTime and endTime.
  * @returns A string containing the Google Calendar URL, or null if dates are invalid.
  */
 export function generateGoogleCalendarLink(event: Event): string | null {
-  const formatDateGoogle = (date: Date | string): string | null => {
+  const formatDateGoogle = (isoDateString: string): string | null => {
     try {
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
-      if (isNaN(dateObj.getTime())) {
-        throw new Error('Invalid date object');
+      // Validate the ISO string format first
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(isoDateString)) {
+         throw new Error(`Invalid ISO 8601 UTC format: ${isoDateString}`);
       }
-      // Format date to Google Calendar format (YYYYMMDDTHHmmssZ) in UTC
-      return format(dateObj, "yyyyMMdd'T'HHmmss'Z'", { timeZone: 'UTC' });
+      // Convert YYYY-MM-DDTHH:MM:SSZ to YYYYMMDDTHHmmssZ
+      return isoDateString.replace(/[-:]/g, '');
     } catch (error) {
-      console.error("Error formatting date for Google Calendar link:", error, "Original value:", date);
+      console.error("Error formatting date for Google Calendar link:", error, "Original value:", isoDateString);
       return null; // Indicate error
     }
   };
@@ -27,17 +26,17 @@ export function generateGoogleCalendarLink(event: Event): string | null {
   const baseURL = 'https://www.google.com/calendar/render?action=TEMPLATE';
 
   const title = encodeURIComponent(event.title || 'Untitled Event');
-  const startTime = formatDateGoogle(event.startTime);
-  const endTime = formatDateGoogle(event.endTime);
+  const startTimeFormatted = formatDateGoogle(event.startTime);
+  const endTimeFormatted = formatDateGoogle(event.endTime);
   const details = encodeURIComponent(event.description || '');
 
   // Basic validation
-  if (!startTime || !endTime) {
+  if (!startTimeFormatted || !endTimeFormatted) {
     console.warn(`Skipping Google Calendar link generation for "${event.title}" due to invalid date format.`);
     return null; // Return null if dates are invalid
   }
 
-  const dates = `${startTime}/${endTime}`;
+  const dates = `${startTimeFormatted}/${endTimeFormatted}`;
 
   // Construct the URL
   const url = `${baseURL}&text=${title}&dates=${dates}&details=${details}`;
